@@ -1,0 +1,78 @@
+@using BTCPayServer.Plugins.DynamicPricing
+@using Microsoft.AspNetCore.Http
+
+@{
+    var invoice = Context.GetInvoice();
+    
+    // Check if the invoice metadata includes dynamic pricing info
+    if (invoice?.Metadata == null || !invoice.Metadata.TryGetValue("dynamicPricingSettings", out var settingsJson))
+    {
+        return;
+    }
+    
+    var settings = BTCPayServer.JsonConverters.NBitcoin.JsonObjectTools.ParseObject<DynamicPricingSettings>(settingsJson);
+    if (settings == null)
+    {
+        return;
+    }
+
+    // Calculate order total (excluding shipping)
+    decimal orderTotal = invoice.Price;
+    decimal shippingCost = 0;
+    
+    // Extract shipping cost from invoice if available
+    if (invoice.Metadata.TryGetValue("shippingCost", out var shippingCostJson))
+    {
+        shippingCost = decimal.Parse(shippingCostJson.ToString());
+        orderTotal -= shippingCost;
+    }
+    
+    // Get applied discounts
+    var appliedShippingThreshold = settings.ShippingThresholds
+        .Where(t => orderTotal >= t.OrderTotal)
+        .OrderByDescending(t => t.OrderTotal)
+        .FirstOrDefault();
+        
+    var appliedDiscountThreshold = settings.DiscountThresholds
+        .Where(t => orderTotal >= t.OrderTotal)
+        .OrderByDescending(t => t.OrderTotal)
+        .FirstOrDefault();
+        
+    // Only show the extension if discounts were applied
+    bool showExtension = 
+        (settings.EnableShippingDiscounts && appliedShippingThreshold != null && shippingCost != appliedShippingThreshold.ShippingCost) ||
+        (settings.EnableOrderDiscounts && appliedDiscountThreshold != null && appliedDiscountThreshold.DiscountPercentage > 0);
+        
+    if (!showExtension)
+    {
+        return;
+    }
+}
+
+<div class="payment-box" style="background-color: #f8f9fa; padding: 1rem; margin-bottom: 1rem; border-radius: 5px;">
+    <h5 class="mb-2">Discounts Applied</h5>
+    
+    @if (settings.EnableShippingDiscounts && appliedShippingThreshold != null && shippingCost != appliedShippingThreshold.ShippingCost)
+    {
+        <div class="mb-2">
+            <span>Shipping discount:</span>
+            <span class="float-right text-success">
+                @(appliedShippingThreshold.ShippingCost == 0 ? "Free Shipping" : $"Reduced to {appliedShippingThreshold.ShippingCost:C}")
+            </span>
+        </div>
+    }
+    
+    @if (settings.EnableOrderDiscounts && appliedDiscountThreshold != null && appliedDiscountThreshold.DiscountPercentage > 0)
+    {
+        <div>
+            <span>Order discount:</span>
+            <span class="float-right text-success">
+                @appliedDiscountThreshold.DiscountPercentage.ToString("0.##")% off
+            </span>
+        </div>
+        
+        <div class="text-muted small mt-1">
+            <em>Subtotal discount: @((orderTotal * (appliedDiscountThreshold.DiscountPercentage / 100m)).ToString("C"))</em>
+        </div>
+    }
+</div> 
