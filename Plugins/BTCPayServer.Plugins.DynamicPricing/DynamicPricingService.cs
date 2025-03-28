@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Data;  // For ApplicationDbContext
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
-using BTCPayServer.Logging;  // Contains Logs and LogSeverity
-using BTCPayServer.Payments;
+using BTCPayServer.Logging;
 using BTCPayServer.Services.Invoices;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -15,14 +15,17 @@ namespace BTCPayServer.Plugins.DynamicPricing
     public class DynamicPricingService : EventHostedServiceBase
     {
         private readonly InvoiceRepository _invoiceRepository;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<DynamicPricingService> _logger;
 
         public DynamicPricingService(
             EventAggregator eventAggregator,
             InvoiceRepository invoiceRepository,
+            ApplicationDbContext dbContext,
             ILogger<DynamicPricingService> logger) : base(eventAggregator, logger)
         {
             _invoiceRepository = invoiceRepository;
+            _dbContext = dbContext;
             _logger = logger;
         }
 
@@ -91,7 +94,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                             modified = true;
 
                             invoiceLogs.Write($"Applied shipping discount. Original shipping: {originalShipping}, New shipping: {newShippingCost}",
-                                LogSeverity.Info);  // Using LogSeverity from BTCPayServer.Logging
+                                InvoiceEventData.EventSeverity.Info);
                         }
                     }
                 }
@@ -120,7 +123,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                         modified = true;
 
                         invoiceLogs.Write($"Applied {applicableThreshold.DiscountPercentage}% discount. Discount amount: {discountAmount}",
-                            LogSeverity.Info);  // Using LogSeverity from BTCPayServer.Logging
+                            InvoiceEventData.EventSeverity.Info);
                     }
                 }
 
@@ -131,8 +134,13 @@ namespace BTCPayServer.Plugins.DynamicPricing
                     invoice.Metadata.AdditionalData["dynamicPricingApplied"] = true;
                     await _invoiceRepository.UpdateInvoiceMetadata(invoice.Id, invoice.StoreId, invoice.Metadata.ToJObject());
                     
-                    // Update invoice price - using AddOrUpdateInvoice since UpdateInvoice doesn't exist
-                    await _invoiceRepository.AddOrUpdateInvoice(invoice);
+                    // Update invoice price directly in the database
+                    var dbInvoice = await _dbContext.Invoices.FindAsync(invoice.Id);
+                    if (dbInvoice != null)
+                    {
+                        dbInvoice.Price = invoice.Price;
+                        await _dbContext.SaveChangesAsync();
+                    }
                     
                     await _invoiceRepository.AddInvoiceLogs(invoice.Id, invoiceLogs);
                     _logger.LogInformation($"Updated pricing for invoice {invoice.Id}");
@@ -143,5 +151,26 @@ namespace BTCPayServer.Plugins.DynamicPricing
                 _logger.LogError(ex, $"Error processing dynamic pricing for invoice {invoice.Id}");
             }
         }
+    }
+
+    // Placeholder for DynamicPricingSettings class (define as needed)
+    public class DynamicPricingSettings
+    {
+        public bool EnableShippingDiscounts { get; set; }
+        public bool EnableOrderDiscounts { get; set; }
+        public ShippingThreshold[] ShippingThresholds { get; set; }
+        public DiscountThreshold[] DiscountThresholds { get; set; }
+    }
+
+    public class ShippingThreshold
+    {
+        public decimal OrderTotal { get; set; }
+        public decimal ShippingCost { get; set; }
+    }
+
+    public class DiscountThreshold
+    {
+        public decimal OrderTotal { get; set; }
+        public decimal DiscountPercentage { get; set; }
     }
 }
