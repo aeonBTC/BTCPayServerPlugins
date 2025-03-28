@@ -1,16 +1,26 @@
 @using BTCPayServer.Plugins.DynamicPricing
 @using Microsoft.AspNetCore.Http
+@using Newtonsoft.Json.Linq
+@inject BTCPayServer.Services.Invoices.InvoiceRepository InvoiceRepository
 
 @{
-    var invoice = Context.GetInvoice();
-    
-    // Check if the invoice metadata includes dynamic pricing info
-    if (invoice?.Metadata == null || !invoice.Metadata.TryGetValue("dynamicPricingSettings", out var settingsJson))
+    // We need to use the InvoiceRepository since there's no extension method for GetInvoice
+    var invoiceId = Context.Request.Query["invoiceId"].FirstOrDefault();
+    if (string.IsNullOrEmpty(invoiceId))
     {
         return;
     }
     
-    var settings = BTCPayServer.JsonConverters.NBitcoin.JsonObjectTools.ParseObject<DynamicPricingSettings>(settingsJson);
+    var invoice = await InvoiceRepository.GetInvoice(invoiceId);
+    
+    // Check if the invoice metadata includes dynamic pricing info
+    if (invoice?.Metadata == null || 
+        !invoice.Metadata.AdditionalData.TryGetValue("dynamicPricingSettings", out var settingsJson))
+    {
+        return;
+    }
+    
+    var settings = Newtonsoft.Json.JsonConvert.DeserializeObject<DynamicPricingSettings>(settingsJson.ToString());
     if (settings == null)
     {
         return;
@@ -21,7 +31,7 @@
     decimal shippingCost = 0;
     
     // Extract shipping cost from invoice if available
-    if (invoice.Metadata.TryGetValue("shippingCost", out var shippingCostJson))
+    if (invoice.Metadata.AdditionalData.TryGetValue("shippingCost", out var shippingCostJson))
     {
         shippingCost = decimal.Parse(shippingCostJson.ToString());
         orderTotal -= shippingCost;

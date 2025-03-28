@@ -8,6 +8,7 @@ using BTCPayServer.Logging;
 using BTCPayServer.Payments;
 using BTCPayServer.Services.Invoices;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Plugins.DynamicPricing
 {
@@ -45,20 +46,24 @@ namespace BTCPayServer.Plugins.DynamicPricing
             try
             {
                 // Check if we have dynamic pricing settings in the metadata
-                if (!invoice.Metadata.TryGetValue("dynamicPricingSettings", out var settingsJson))
+                if (!invoice.Metadata.AdditionalData.TryGetValue("dynamicPricingSettings", out var settingsJson))
                 {
                     // No settings found, nothing to do
                     return;
                 }
 
-                var settings = BTCPayServer.JsonConverters.NBitcoin.JsonObjectTools.ParseObject<DynamicPricingSettings>(settingsJson);
+                var settings = Newtonsoft.Json.JsonConvert.DeserializeObject<DynamicPricingSettings>(settingsJson.ToString());
+                if (settings == null)
+                {
+                    return;
+                }
                 
                 // Calculate order total (excluding shipping)
                 decimal orderTotal = invoice.Price;
                 decimal originalShipping = 0;
 
                 // Extract shipping cost from invoice if available
-                if (invoice.Metadata.TryGetValue("shippingCost", out var shippingCostJson))
+                if (invoice.Metadata.AdditionalData.TryGetValue("shippingCost", out var shippingCostJson))
                 {
                     originalShipping = decimal.Parse(shippingCostJson.ToString());
                     orderTotal -= originalShipping;
@@ -86,7 +91,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                             modified = true;
 
                             invoiceLogs.Write($"Applied shipping discount. Original shipping: {originalShipping}, New shipping: {newShippingCost}",
-                                InvoiceEventData.EventSeverity.Info);
+                                BTCPayServer.Services.Invoices.InvoiceEventData.EventSeverity.Info);
                         }
                     }
                 }
@@ -116,14 +121,15 @@ namespace BTCPayServer.Plugins.DynamicPricing
                         modified = true;
 
                         invoiceLogs.Write($"Applied {applicableThreshold.DiscountPercentage}% discount. Discount amount: {discountAmount}",
-                            InvoiceEventData.EventSeverity.Info);
+                            BTCPayServer.Services.Invoices.InvoiceEventData.EventSeverity.Info);
                     }
                 }
 
                 // Update the invoice if modified
                 if (modified)
                 {
-                    await _invoiceRepository.UpdateInvoicePrice(invoice.Id, invoice.Price);
+                    // There's no direct UpdateInvoicePrice method, so update the entity instead
+                    await _invoiceRepository.UpdateInvoice(invoice.Id, invoice.StoreId, newPrice: invoice.Price);
                     await _invoiceRepository.AddInvoiceLogs(invoice.Id, invoiceLogs);
                     _logger.LogInformation($"Updated pricing for invoice {invoice.Id}");
                 }

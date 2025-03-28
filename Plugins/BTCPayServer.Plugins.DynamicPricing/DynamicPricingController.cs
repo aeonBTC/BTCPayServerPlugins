@@ -35,7 +35,8 @@ namespace BTCPayServer.Plugins.DynamicPricing
             if (store == null)
                 return NotFound();
 
-            var settings = store.GetStoreBlob().GetPluginSettings<DynamicPricingSettings>();
+            var settings = await _storeRepository.GetSettingAsync<DynamicPricingSettings>(storeId, nameof(DynamicPricingSettings)) 
+                ?? new DynamicPricingSettings();
             
             return View(settings);
         }
@@ -52,11 +53,8 @@ namespace BTCPayServer.Plugins.DynamicPricing
             if (store == null)
                 return NotFound();
 
-            var storeBlob = store.GetStoreBlob();
-            storeBlob.SetPluginSettings(settings);
-            store.SetStoreBlob(storeBlob);
+            await _storeRepository.UpdateSetting(storeId, nameof(DynamicPricingSettings), settings);
 
-            await _storeRepository.UpdateStore(store);
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
                 Message = "Dynamic Pricing settings updated successfully.",
