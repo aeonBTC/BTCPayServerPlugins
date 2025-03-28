@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
-using BTCPayServer.Logging;
+using BTCPayServer.Logging;  // Contains Logs and LogSeverity
 using BTCPayServer.Payments;
 using BTCPayServer.Services.Invoices;
 using Microsoft.Extensions.Logging;
@@ -91,7 +91,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                             modified = true;
 
                             invoiceLogs.Write($"Applied shipping discount. Original shipping: {originalShipping}, New shipping: {newShippingCost}",
-                                LogSeverity.Info);
+                                LogSeverity.Info);  // Using LogSeverity from BTCPayServer.Logging
                         }
                     }
                 }
@@ -113,7 +113,6 @@ namespace BTCPayServer.Plugins.DynamicPricing
                         decimal newShippingCost = originalShipping;
                         if (modified)
                         {
-                            // If shipping was already modified, get the current price minus the order total
                             newShippingCost = invoice.Price - orderTotal;
                         }
 
@@ -121,7 +120,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                         modified = true;
 
                         invoiceLogs.Write($"Applied {applicableThreshold.DiscountPercentage}% discount. Discount amount: {discountAmount}",
-                            LogSeverity.Info);
+                            LogSeverity.Info);  // Using LogSeverity from BTCPayServer.Logging
                     }
                 }
 
@@ -132,14 +131,8 @@ namespace BTCPayServer.Plugins.DynamicPricing
                     invoice.Metadata.AdditionalData["dynamicPricingApplied"] = true;
                     await _invoiceRepository.UpdateInvoiceMetadata(invoice.Id, invoice.StoreId, invoice.Metadata.ToJObject());
                     
-                    // Update invoice price by updating the entire entity
-                    // Since UpdateInvoice doesn't exist, we'll need to fetch and update
-                    var invoiceToUpdate = await _invoiceRepository.GetInvoice(invoice.Id);
-                    if (invoiceToUpdate != null)
-                    {
-                        invoiceToUpdate.Price = invoice.Price;
-                        await _invoiceRepository.UpdateInvoiceMetadata(invoice.Id, invoice.StoreId, invoiceToUpdate.Metadata.ToJObject());
-                    }
+                    // Update invoice price - using AddOrUpdateInvoice since UpdateInvoice doesn't exist
+                    await _invoiceRepository.AddOrUpdateInvoice(invoice);
                     
                     await _invoiceRepository.AddInvoiceLogs(invoice.Id, invoiceLogs);
                     _logger.LogInformation($"Updated pricing for invoice {invoice.Id}");
