@@ -91,7 +91,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                             modified = true;
 
                             invoiceLogs.Write($"Applied shipping discount. Original shipping: {originalShipping}, New shipping: {newShippingCost}",
-                                BTCPayServer.Services.Invoices.InvoiceEventData.EventSeverity.Info);
+                                Logging.InvoiceEventData.EventSeverity.Info);
                         }
                     }
                 }
@@ -121,15 +121,20 @@ namespace BTCPayServer.Plugins.DynamicPricing
                         modified = true;
 
                         invoiceLogs.Write($"Applied {applicableThreshold.DiscountPercentage}% discount. Discount amount: {discountAmount}",
-                            BTCPayServer.Services.Invoices.InvoiceEventData.EventSeverity.Info);
+                            Logging.InvoiceEventData.EventSeverity.Info);
                     }
                 }
 
                 // Update the invoice if modified
                 if (modified)
                 {
-                    // There's no direct UpdateInvoicePrice method, so update the entity instead
-                    await _invoiceRepository.UpdateInvoice(invoice.Id, invoice.StoreId, newPrice: invoice.Price);
+                    // Use UpdateInvoiceMetadata with updated price
+                    invoice.Metadata.AdditionalData["dynamicPricingApplied"] = true;
+                    await _invoiceRepository.UpdateInvoiceMetadata(invoice.Id, invoice.StoreId, invoice.Metadata.ToJObject());
+                    
+                    // Update only the price field
+                    await _invoiceRepository.UpdateInvoiceStatus(invoice.Id, invoice.Status, invoice.ExceptionStatus, invoice.Price);
+                    
                     await _invoiceRepository.AddInvoiceLogs(invoice.Id, invoiceLogs);
                     _logger.LogInformation($"Updated pricing for invoice {invoice.Id}");
                 }
