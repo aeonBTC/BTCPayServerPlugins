@@ -19,7 +19,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
             
             // Add UI Extensions
             applicationBuilder.AddUIExtension("invoice-checkout-payment-method", "DynamicPricing/CheckoutExtension");
-            applicationBuilder.AddUIExtension("store-settings-list", "DynamicPricing/NavExtension");
+            applicationBuilder.AddUIExtension("header-nav", "DynamicPricing/NavExtension");
             
             base.Execute(applicationBuilder);
         }
