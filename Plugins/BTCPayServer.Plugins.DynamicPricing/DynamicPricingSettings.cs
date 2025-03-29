@@ -7,24 +7,14 @@ namespace BTCPayServer.Plugins.DynamicPricing
     public class DynamicPricingSettings
     {
         [Display(Name = "Enable dynamic shipping discounts")]
-        public bool EnableShippingDiscounts { get; set; } = true;
+        public bool EnableShippingDiscounts { get; set; }
 
         [Display(Name = "Enable order total discounts")]
-        public bool EnableOrderDiscounts { get; set; } = true;
+        public bool EnableOrderDiscounts { get; set; }
 
-        public List<ShippingThreshold> ShippingThresholds { get; set; } = new List<ShippingThreshold>
-        {
-            new ShippingThreshold { OrderTotal = 50, ShippingCost = 5 },
-            new ShippingThreshold { OrderTotal = 100, ShippingCost = 2.5M },
-            new ShippingThreshold { OrderTotal = 200, ShippingCost = 0 }
-        };
+        public ShippingThreshold[] ShippingThresholds { get; set; }
 
-        public List<DiscountThreshold> DiscountThresholds { get; set; } = new List<DiscountThreshold>
-        {
-            new DiscountThreshold { OrderTotal = 50, DiscountPercentage = 5 },
-            new DiscountThreshold { OrderTotal = 100, DiscountPercentage = 10 },
-            new DiscountThreshold { OrderTotal = 200, DiscountPercentage = 15 }
-        };
+        public DiscountThreshold[] DiscountThresholds { get; set; }
     }
 
     public class ShippingThreshold
