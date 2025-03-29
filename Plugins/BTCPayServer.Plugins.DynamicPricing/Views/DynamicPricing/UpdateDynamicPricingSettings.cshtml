@@ -1,6 +1,7 @@
 @model DynamicPricingSettings
 @{
     ViewData["Title"] = "Dynamic Pricing Settings";
+
     Layout = "_Layout";
 }
 
@@ -154,11 +155,6 @@
                 
                 tbody.appendChild(newRow);
                 addRemoveListeners();
-                
-                // Re-parse validation for new elements
-                if (typeof $ !== 'undefined' && $.validator) {
-                    $.validator.unobtrusive.parse(document.querySelector('form'));
-                }
             });
             
             // Add discount threshold
@@ -196,11 +192,6 @@
                 
                 tbody.appendChild(newRow);
                 addRemoveListeners();
-                
-                // Re-parse validation for new elements
-                if (typeof $ !== 'undefined' && $.validator) {
-                    $.validator.unobtrusive.parse(document.querySelector('form'));
-                }
             });
             
             function addRemoveListeners() {
@@ -233,9 +224,4 @@
             addRemoveListeners();
         });
     </script>
-}
-
-@section PageFootScripts {
-    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
 } 
