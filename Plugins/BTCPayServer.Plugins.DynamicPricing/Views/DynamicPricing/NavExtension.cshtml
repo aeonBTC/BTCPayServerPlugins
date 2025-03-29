@@ -1,10 +1,18 @@
 @using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 
+@{
+    var store = Context.GetStoreData();
+    if (store == null)
+    {
+        return;
+    }
+}
+
 <li class="nav-item">
     <a asp-controller="DynamicPricing" 
        asp-action="UpdateDynamicPricingSettings" 
-       asp-route-storeId="@Context.GetStoreData()?.Id"
+       asp-route-storeId="@store.Id"
        class="nav-link" id="Nav-DynamicPricing">
         <span class="me-2"><i class="fa fa-percentage"></i></span>
         <span>Dynamic Pricing</span>
