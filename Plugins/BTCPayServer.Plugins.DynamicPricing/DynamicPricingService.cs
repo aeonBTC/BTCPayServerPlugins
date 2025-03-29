@@ -152,25 +152,4 @@ namespace BTCPayServer.Plugins.DynamicPricing
             }
         }
     }
-
-    // Placeholder for DynamicPricingSettings class (define as needed)
-    public class DynamicPricingSettings
-    {
-        public bool EnableShippingDiscounts { get; set; }
-        public bool EnableOrderDiscounts { get; set; }
-        public ShippingThreshold[] ShippingThresholds { get; set; }
-        public DiscountThreshold[] DiscountThresholds { get; set; }
-    }
-
-    public class ShippingThreshold
-    {
-        public decimal OrderTotal { get; set; }
-        public decimal ShippingCost { get; set; }
-    }
-
-    public class DiscountThreshold
-    {
-        public decimal OrderTotal { get; set; }
-        public decimal DiscountPercentage { get; set; }
-    }
 }
