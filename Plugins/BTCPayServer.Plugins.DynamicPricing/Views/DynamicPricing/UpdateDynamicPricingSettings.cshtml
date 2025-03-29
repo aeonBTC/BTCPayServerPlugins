@@ -1,6 +1,7 @@
 @model DynamicPricingSettings
 @{
     ViewData["Title"] = "Dynamic Pricing Settings";
+    Layout = "_Layout";
 }
 
 <div class="card mb-4">
@@ -23,18 +24,19 @@
             <h4 class="mb-3">Shipping Discount Thresholds</h4>
             <p class="text-muted">Define shipping costs at different order total thresholds. The highest applicable threshold will be used.</p>
             <div class="table-responsive mb-4">
-                <table class="table table-hover">
+                <table class="table table-hover" id="shipping-thresholds">
                     <thead>
                         <tr>
                             <th>Order Total (≥)</th>
                             <th>Shipping Cost</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.ShippingThresholds.Length == 0)
                         {
-                            <tr>
-                                <td colspan="2" class="text-center">
+                            <tr class="no-thresholds">
+                                <td colspan="3" class="text-center">
                                     <p class="text-muted mb-0">No shipping thresholds defined.</p>
                                 </td>
                             </tr>
@@ -52,6 +54,9 @@
                                         <input asp-for="ShippingThresholds[i].ShippingCost" class="form-control" />
                                         <span asp-validation-for="ShippingThresholds[i].ShippingCost" class="text-danger"></span>
                                     </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-threshold"><i class="fa fa-trash"></i></button>
+                                    </td>
                                 </tr>
                             }
                         }
@@ -63,18 +68,19 @@
             <h4 class="mb-3">Order Discount Thresholds</h4>
             <p class="text-muted">Define percentage discounts at different order total thresholds. The highest applicable threshold will be used.</p>
             <div class="table-responsive mb-4">
-                <table class="table table-hover">
+                <table class="table table-hover" id="discount-thresholds">
                     <thead>
                         <tr>
                             <th>Order Total (≥)</th>
                             <th>Discount Percentage</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.DiscountThresholds.Length == 0)
                         {
-                            <tr>
-                                <td colspan="2" class="text-center">
+                            <tr class="no-thresholds">
+                                <td colspan="3" class="text-center">
                                     <p class="text-muted mb-0">No discount thresholds defined.</p>
                                 </td>
                             </tr>
@@ -97,6 +103,9 @@
                                         </div>
                                         <span asp-validation-for="DiscountThresholds[i].DiscountPercentage" class="text-danger"></span>
                                     </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-threshold"><i class="fa fa-trash"></i></button>
+                                    </td>
                                 </tr>
                             }
                         }
@@ -112,17 +121,18 @@
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+@section PageFootContent {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Add shipping threshold
             document.getElementById('addShippingThreshold').addEventListener('click', function() {
-                var tbody = document.querySelector('table:nth-of-type(1) tbody');
+                var table = document.getElementById('shipping-thresholds');
+                var tbody = table.querySelector('tbody');
                 
                 // If there's a "No thresholds defined" message, remove it
-                if (tbody.querySelector('tr td[colspan="2"]')) {
-                    tbody.innerHTML = '';
+                var noThresholds = tbody.querySelector('.no-thresholds');
+                if (noThresholds) {
+                    tbody.removeChild(noThresholds);
                 }
                 
                 var newIndex = tbody.children.length;
@@ -137,21 +147,29 @@
                         <input name="ShippingThresholds[${newIndex}].ShippingCost" id="ShippingThresholds_${newIndex}__ShippingCost" class="form-control" type="text" value="" />
                         <span class="text-danger" data-valmsg-for="ShippingThresholds[${newIndex}].ShippingCost" data-valmsg-replace="true"></span>
                     </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-threshold"><i class="fa fa-trash"></i></button>
+                    </td>
                 `;
                 
                 tbody.appendChild(newRow);
+                addRemoveListeners();
                 
                 // Re-parse validation for new elements
-                $.validator.unobtrusive.parse(document.querySelector('form'));
+                if (typeof $ !== 'undefined' && $.validator) {
+                    $.validator.unobtrusive.parse(document.querySelector('form'));
+                }
             });
             
             // Add discount threshold
             document.getElementById('addDiscountThreshold').addEventListener('click', function() {
-                var tbody = document.querySelector('table:nth-of-type(2) tbody');
+                var table = document.getElementById('discount-thresholds');
+                var tbody = table.querySelector('tbody');
                 
                 // If there's a "No thresholds defined" message, remove it
-                if (tbody.querySelector('tr td[colspan="2"]')) {
-                    tbody.innerHTML = '';
+                var noThresholds = tbody.querySelector('.no-thresholds');
+                if (noThresholds) {
+                    tbody.removeChild(noThresholds);
                 }
                 
                 var newIndex = tbody.children.length;
@@ -171,13 +189,53 @@
                         </div>
                         <span class="text-danger" data-valmsg-for="DiscountThresholds[${newIndex}].DiscountPercentage" data-valmsg-replace="true"></span>
                     </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-threshold"><i class="fa fa-trash"></i></button>
+                    </td>
                 `;
                 
                 tbody.appendChild(newRow);
+                addRemoveListeners();
                 
                 // Re-parse validation for new elements
-                $.validator.unobtrusive.parse(document.querySelector('form'));
+                if (typeof $ !== 'undefined' && $.validator) {
+                    $.validator.unobtrusive.parse(document.querySelector('form'));
+                }
             });
+            
+            function addRemoveListeners() {
+                document.querySelectorAll('.remove-threshold').forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        var row = this.closest('tr');
+                        var tbody = row.parentNode;
+                        tbody.removeChild(row);
+                        
+                        // If no rows left, add the "No thresholds defined" message
+                        if (tbody.children.length === 0) {
+                            var tableId = tbody.closest('table').id;
+                            var colspan = tableId === 'shipping-thresholds' ? 3 : 3;
+                            var noun = tableId === 'shipping-thresholds' ? 'shipping' : 'discount';
+                            
+                            var noThresholdsRow = document.createElement('tr');
+                            noThresholdsRow.className = 'no-thresholds';
+                            noThresholdsRow.innerHTML = `
+                                <td colspan="${colspan}" class="text-center">
+                                    <p class="text-muted mb-0">No ${noun} thresholds defined.</p>
+                                </td>
+                            `;
+                            tbody.appendChild(noThresholdsRow);
+                        }
+                    });
+                });
+            }
+            
+            // Initialize remove listeners
+            addRemoveListeners();
         });
     </script>
+}
+
+@section PageFootScripts {
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
 } 
