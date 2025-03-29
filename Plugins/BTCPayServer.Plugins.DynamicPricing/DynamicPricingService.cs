@@ -138,7 +138,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
                     var dbInvoice = await _dbContext.Invoices.FindAsync(invoice.Id);
                     if (dbInvoice != null)
                     {
-                        dbInvoice.Price = invoice.Price;
+                        dbInvoice.Amount = invoice.Price;
                         await _dbContext.SaveChangesAsync();
                     }
                     
