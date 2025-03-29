@@ -9,7 +9,7 @@ namespace BTCPayServer.Plugins.DynamicPricing
     {
         public override string Identifier => "BTCPayServer.Plugins.DynamicPricing";
         public override string Name => "Dynamic Pricing";
-        public override string Description => "Apply shipping and percentage-based discounts to BTCPay Server invoices based on order total thresholds.";
+        public override string Description => "Apply shipping and percentage-based discounts based on order total thresholds.";
         public override string Author => "aeonBTC";
         public override string Version => "1.0.0";
 
