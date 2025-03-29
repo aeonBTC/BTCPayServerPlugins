@@ -31,21 +31,33 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (int i = 0; i < Model.ShippingThresholds.Length; i++)
+                        @if (Model.ShippingThresholds.Length == 0)
                         {
                             <tr>
-                                <td>
-                                    <input asp-for="ShippingThresholds[i].OrderTotal" class="form-control" />
-                                    <span asp-validation-for="ShippingThresholds[i].OrderTotal" class="text-danger"></span>
-                                </td>
-                                <td>
-                                    <input asp-for="ShippingThresholds[i].ShippingCost" class="form-control" />
-                                    <span asp-validation-for="ShippingThresholds[i].ShippingCost" class="text-danger"></span>
+                                <td colspan="2" class="text-center">
+                                    <p class="text-muted mb-0">No shipping thresholds defined.</p>
                                 </td>
                             </tr>
                         }
+                        else
+                        {
+                            @for (int i = 0; i < Model.ShippingThresholds.Length; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input asp-for="ShippingThresholds[i].OrderTotal" class="form-control" />
+                                        <span asp-validation-for="ShippingThresholds[i].OrderTotal" class="text-danger"></span>
+                                    </td>
+                                    <td>
+                                        <input asp-for="ShippingThresholds[i].ShippingCost" class="form-control" />
+                                        <span asp-validation-for="ShippingThresholds[i].ShippingCost" class="text-danger"></span>
+                                    </td>
+                                </tr>
+                            }
+                        }
                     </tbody>
                 </table>
+                <button type="button" id="addShippingThreshold" class="btn btn-secondary btn-sm mt-2">Add Shipping Threshold</button>
             </div>
 
             <h4 class="mb-3">Order Discount Thresholds</h4>
@@ -59,26 +71,38 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (int i = 0; i < Model.DiscountThresholds.Length; i++)
+                        @if (Model.DiscountThresholds.Length == 0)
                         {
                             <tr>
-                                <td>
-                                    <input asp-for="DiscountThresholds[i].OrderTotal" class="form-control" />
-                                    <span asp-validation-for="DiscountThresholds[i].OrderTotal" class="text-danger"></span>
-                                </td>
-                                <td>
-                                    <div class="input-group">
-                                        <input asp-for="DiscountThresholds[i].DiscountPercentage" class="form-control" />
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <span asp-validation-for="DiscountThresholds[i].DiscountPercentage" class="text-danger"></span>
+                                <td colspan="2" class="text-center">
+                                    <p class="text-muted mb-0">No discount thresholds defined.</p>
                                 </td>
                             </tr>
                         }
+                        else
+                        {
+                            @for (int i = 0; i < Model.DiscountThresholds.Length; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input asp-for="DiscountThresholds[i].OrderTotal" class="form-control" />
+                                        <span asp-validation-for="DiscountThresholds[i].OrderTotal" class="text-danger"></span>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input asp-for="DiscountThresholds[i].DiscountPercentage" class="form-control" />
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </div>
+                                        <span asp-validation-for="DiscountThresholds[i].DiscountPercentage" class="text-danger"></span>
+                                    </td>
+                                </tr>
+                            }
+                        }
                     </tbody>
                 </table>
+                <button type="button" id="addDiscountThreshold" class="btn btn-secondary btn-sm mt-2">Add Discount Threshold</button>
             </div>
 
             <div class="d-flex justify-content-end">
@@ -90,4 +114,70 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add shipping threshold
+            document.getElementById('addShippingThreshold').addEventListener('click', function() {
+                var tbody = document.querySelector('table:nth-of-type(1) tbody');
+                
+                // If there's a "No thresholds defined" message, remove it
+                if (tbody.querySelector('tr td[colspan="2"]')) {
+                    tbody.innerHTML = '';
+                }
+                
+                var newIndex = tbody.children.length;
+                var newRow = document.createElement('tr');
+                
+                newRow.innerHTML = `
+                    <td>
+                        <input name="ShippingThresholds[${newIndex}].OrderTotal" id="ShippingThresholds_${newIndex}__OrderTotal" class="form-control" type="text" value="" />
+                        <span class="text-danger" data-valmsg-for="ShippingThresholds[${newIndex}].OrderTotal" data-valmsg-replace="true"></span>
+                    </td>
+                    <td>
+                        <input name="ShippingThresholds[${newIndex}].ShippingCost" id="ShippingThresholds_${newIndex}__ShippingCost" class="form-control" type="text" value="" />
+                        <span class="text-danger" data-valmsg-for="ShippingThresholds[${newIndex}].ShippingCost" data-valmsg-replace="true"></span>
+                    </td>
+                `;
+                
+                tbody.appendChild(newRow);
+                
+                // Re-parse validation for new elements
+                $.validator.unobtrusive.parse(document.querySelector('form'));
+            });
+            
+            // Add discount threshold
+            document.getElementById('addDiscountThreshold').addEventListener('click', function() {
+                var tbody = document.querySelector('table:nth-of-type(2) tbody');
+                
+                // If there's a "No thresholds defined" message, remove it
+                if (tbody.querySelector('tr td[colspan="2"]')) {
+                    tbody.innerHTML = '';
+                }
+                
+                var newIndex = tbody.children.length;
+                var newRow = document.createElement('tr');
+                
+                newRow.innerHTML = `
+                    <td>
+                        <input name="DiscountThresholds[${newIndex}].OrderTotal" id="DiscountThresholds_${newIndex}__OrderTotal" class="form-control" type="text" value="" />
+                        <span class="text-danger" data-valmsg-for="DiscountThresholds[${newIndex}].OrderTotal" data-valmsg-replace="true"></span>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <input name="DiscountThresholds[${newIndex}].DiscountPercentage" id="DiscountThresholds_${newIndex}__DiscountPercentage" class="form-control" type="text" value="" />
+                            <div class="input-group-append">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <span class="text-danger" data-valmsg-for="DiscountThresholds[${newIndex}].DiscountPercentage" data-valmsg-replace="true"></span>
+                    </td>
+                `;
+                
+                tbody.appendChild(newRow);
+                
+                // Re-parse validation for new elements
+                $.validator.unobtrusive.parse(document.querySelector('form'));
+            });
+        });
+    </script>
 } 

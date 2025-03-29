@@ -6,6 +6,13 @@ namespace BTCPayServer.Plugins.DynamicPricing
 {
     public class DynamicPricingSettings
     {
+        public DynamicPricingSettings()
+        {
+            // Initialize arrays by default to prevent null reference exceptions
+            ShippingThresholds = new ShippingThreshold[0];
+            DiscountThresholds = new DiscountThreshold[0];
+        }
+
         [Display(Name = "Enable dynamic shipping discounts")]
         public bool EnableShippingDiscounts { get; set; }
 

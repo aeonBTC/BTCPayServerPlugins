@@ -38,6 +38,10 @@ namespace BTCPayServer.Plugins.DynamicPricing
             var settings = await _storeRepository.GetSettingAsync<DynamicPricingSettings>(storeId, nameof(DynamicPricingSettings)) 
                 ?? new DynamicPricingSettings();
             
+            // Initialize empty arrays if they're null to prevent NullReferenceException in the view
+            settings.ShippingThresholds ??= new ShippingThreshold[0];
+            settings.DiscountThresholds ??= new DiscountThreshold[0];
+            
             return View(settings);
         }
 
@@ -46,12 +50,19 @@ namespace BTCPayServer.Plugins.DynamicPricing
         {
             if (!ModelState.IsValid)
             {
+                // Initialize empty arrays if they're null to prevent NullReferenceException in the view
+                settings.ShippingThresholds ??= new ShippingThreshold[0];
+                settings.DiscountThresholds ??= new DiscountThreshold[0];
                 return View(settings);
             }
 
             var store = HttpContext.GetStoreData();
             if (store == null)
                 return NotFound();
+
+            // Ensure arrays are not null before saving
+            settings.ShippingThresholds ??= new ShippingThreshold[0];
+            settings.DiscountThresholds ??= new DiscountThreshold[0];
 
             await _storeRepository.UpdateSetting(storeId, nameof(DynamicPricingSettings), settings);
 
